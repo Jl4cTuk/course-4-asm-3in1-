@@ -77,70 +77,112 @@ find_max_end_inner_loop:
 
 find_max_end_outer_loop:
 
-    ; Swap rows
-    mov esi, 0  ; j = 0
+    ; Swap rows to bring max_i to row 0 by swapping adjacent rows
+    mov eax, [max_i]  ; eax = max_i
+    cmp eax, 0
+    jle swap_rows_done
+
+    push ebx
+    push edi
 
 swap_rows_loop:
+    cmp eax, 0
+    jle swap_rows_done_pop
+
+    ; For j from 0 to COLS - 1
+    mov esi, 0  ; esi = j
+
+swap_adjacent_rows_inner_loop:
     cmp esi, COLS
-    jge swap_rows_end_loop
+    jge swap_adjacent_rows_inner_done
 
-    ; Calculate offset for matrix[0][j]
-    mov eax, 0
-    imul eax, COLS
-    add eax, esi
-    shl eax, 2
-    mov ebx, eax  ; ebx = offset for matrix[0][j]
+    ; Calculate offset for matrix[eax][j]
+    mov edx, eax   ; edx = current max_i
+    imul edx, COLS
+    add edx, esi
+    shl edx, 2  ; edx = offset for matrix[eax][j]
 
-    ; Calculate offset for matrix[max_i][j]
-    mov ecx, [max_i]
+    ; Calculate offset for matrix[eax - 1][j]
+    mov ecx, eax
+    dec ecx  ; ecx = eax - 1
     imul ecx, COLS
     add ecx, esi
-    shl ecx, 2
-    ; ecx = offset for matrix[max_i][j]
+    shl ecx, 2  ; ecx = offset for matrix[eax - 1][j]
 
-    ; Swap matrix[0][j] and matrix[max_i][j]
-    mov edx, [matrix + ebx]
+    ; Swap matrix[eax][j] and matrix[eax - 1][j]
+    mov ebx, [matrix + edx]
     mov edi, [matrix + ecx]
-    mov [matrix + ebx], edi
-    mov [matrix + ecx], edx
+    mov [matrix + edx], edi
+    mov [matrix + ecx], ebx
 
     inc esi
+    jmp swap_adjacent_rows_inner_loop
+
+swap_adjacent_rows_inner_done:
+    dec eax  ; eax = eax - 1
     jmp swap_rows_loop
 
-swap_rows_end_loop:
+swap_rows_done_pop:
+    pop edi
+    pop ebx
 
-    ; Swap columns
-    mov esi, 0  ; i = 0
+swap_rows_done:
+    ; Now, max_i is at row 0
+    mov dword [max_i], 0
+
+    ; Swap columns to bring max_j to column 0 by swapping adjacent columns
+    mov eax, [max_j]  ; eax = max_j
+    cmp eax, 0
+    jle swap_cols_done
+
+    push ebx
+    push edi
 
 swap_cols_loop:
+    cmp eax, 0
+    jle swap_cols_done_pop
+
+    ; For i from 0 to ROWS - 1
+    mov esi, 0  ; esi = i
+
+swap_adjacent_cols_inner_loop:
     cmp esi, ROWS
-    jge swap_cols_end_loop
+    jge swap_adjacent_cols_inner_done
 
-    ; Calculate offset for matrix[i][0]
-    mov eax, esi
-    imul eax, COLS
-    add eax, 0
-    shl eax, 2
-    mov ebx, eax  ; ebx = offset for matrix[i][0]
+    ; Calculate offset for matrix[i][eax]
+    mov edx, esi   ; edx = i
+    imul edx, COLS
+    add edx, eax
+    shl edx, 2  ; edx = offset for matrix[i][eax]
 
-    ; Calculate offset for matrix[i][max_j]
+    ; Calculate offset for matrix[i][eax - 1]
     mov ecx, esi
     imul ecx, COLS
-    mov edx, [max_j]
-    add ecx, edx
-    shl ecx, 2
-    ; ecx = offset for matrix[i][max_j]
+    mov ebx, eax
+    dec ebx  ; ebx = eax - 1
+    add ecx, ebx
+    shl ecx, 2  ; ecx = offset for matrix[i][eax - 1]
 
-    ; Swap matrix[i][0] and matrix[i][max_j]
-    mov edx, [matrix + ebx]
+    ; Swap matrix[i][eax] and matrix[i][eax - 1]
+    mov ebx, [matrix + edx]
     mov edi, [matrix + ecx]
-    mov [matrix + ebx], edi
-    mov [matrix + ecx], edx
+    mov [matrix + edx], edi
+    mov [matrix + ecx], ebx
 
     inc esi
+    jmp swap_adjacent_cols_inner_loop
+
+swap_adjacent_cols_inner_done:
+    dec eax
     jmp swap_cols_loop
 
-swap_cols_end_loop:
+swap_cols_done_pop:
+    pop edi
+    pop ebx
+
+swap_cols_done:
+    ; Now, max_j is at column 0
+    mov dword [max_j], 0
 
     ; Output the resulting matrix
     mov esi, 0  ; i = 0
